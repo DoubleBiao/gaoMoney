@@ -80,12 +80,12 @@ class DualWindows(SlideWindow):
         return self.m_bp(data[p: p + self.m_ws])
     
     def A_hold(self, data, p):
-        return self.m_ap(data[p: p + self.m_ws])
+        return self.m_ap(data[p: p + 2*self.m_ws])
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='what would happen if consecutive drops has happened?')
     parser.add_argument('--start-date', '-s', type=str, default=datetime.today().date().strftime("%Y-%m-%d"))
-    parser.add_argument('--span-in-yr', '-sy', type=int, default=10)
+    parser.add_argument('--span-in-yr', '-sy', type=int, default=30)
     parser.add_argument('--consecutive-days', '-c', type=int, default=5)
 
     parser.add_argument('--stocks', '-st', metavar='string', type=str, nargs='+', default=["^GSPC"])
@@ -96,23 +96,41 @@ def parse_arg():
     return args
 
 def check_stock(stock, args):
+    print("=================================================================================================")
     print("check stock ", stock)
 
     print("")
     data = get_data_before(stock, args.start_date, args.span_in_yr*365)
     print("length of data:", data.size)
 
-    print("when consective drop happens, the probability that the next day rise")
+    print("when consective drop happens, the probability that rise the next day rise")
     rise = lambda x: x > 0
     drop = lambda x: x <= 0
     SlideWindow(args.consecutive_days, rise, drop)((data['Close'].pct_change()*100).values[1:])
     
     print("")
     print("when consective drop happens, the probability that marcket price come back after the same days")
-    # data2 = get_diff_data_before(args.start_date, args.span_in_yr*365*365)
     rise_back = lambda vec: vec[-1] > vec[0]
     all_drop = lambda vec: all([x <= 0 for x in vec])
     DualWindows(args.consecutive_days, rise_back, all_drop)(data['Close'].diff().values[1:])
+
+    print("")
+    print("when there is a huge drop, the probability that rise the next day rise")
+    rise = lambda vec: vec[args.consecutive_days] > vec[args.consecutive_days - 1]
+    huge_drop = lambda vec: (vec[-1] - vec[0])/vec[0] < -0.05
+    DualWindows(args.consecutive_days, rise, huge_drop)(data['Close'].values)
+
+    print("")
+    print("when there is a huge drop, the probability that marcket price come back after the same days")
+    rise_back = lambda vec: vec[-1] > vec[0]
+    huge_drop = lambda vec: (vec[-1] - vec[0])/vec[0] < -0.05
+    DualWindows(args.consecutive_days, rise_back, huge_drop)(data['Close'].diff().values[1:])
+
+    print("")
+    print("when there is a huge drop, the probability that hqs profit after the same days")
+    rise = lambda vec: vec[-1] > vec[args.consecutive_days-1]
+    huge_drop = lambda vec: (vec[-1] - vec[0])/vec[0] < -0.05
+    DualWindows(args.consecutive_days, rise, huge_drop)(data['Close'].diff().values[1:])
 
 if __name__ == "__main__":
     args = parse_arg()
