@@ -110,7 +110,7 @@ def check_stock(stock, args):
     
     print("")
     print("when consective drop happens, the probability that marcket price come back after the same days")
-    rise_back = lambda vec: vec[-1] > vec[0]
+    rise_back = lambda vec: sum(vec) > 0
     all_drop = lambda vec: all([x <= 0 for x in vec])
     DualWindows(args.consecutive_days, rise_back, all_drop)(data['Close'].diff().values[1:])
 
@@ -124,13 +124,13 @@ def check_stock(stock, args):
     print("when there is a huge drop, the probability that marcket price come back after the same days")
     rise_back = lambda vec: vec[-1] > vec[0]
     huge_drop = lambda vec: (vec[-1] - vec[0])/vec[0] < -0.05
-    DualWindows(args.consecutive_days, rise_back, huge_drop)(data['Close'].diff().values[1:])
+    DualWindows(args.consecutive_days, rise_back, huge_drop)(data['Close'].values[1:])
 
     print("")
-    print("when there is a huge drop, the probability that hqs profit after the same days")
+    print("when there is a huge drop, the probability that gain after the same days")
     rise = lambda vec: vec[-1] > vec[args.consecutive_days-1]
     huge_drop = lambda vec: (vec[-1] - vec[0])/vec[0] < -0.05
-    DualWindows(args.consecutive_days, rise, huge_drop)(data['Close'].diff().values[1:])
+    DualWindows(args.consecutive_days, rise, huge_drop)(data['Close'].values[1:])
 
 if __name__ == "__main__":
     args = parse_arg()
