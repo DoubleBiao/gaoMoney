@@ -1,9 +1,10 @@
 # Download options data from dolthub
-# dolthub is a hub for dolt database system(maybe?). It is **free**!
+dolthub is a hub for dolt database system(maybe?). It is **free**!
 
 ## dolt overview:
 dolt is database system that wraps mysql. dolthub is a website similar to github. It has some database maintained by dolt. To access the data, this is procedures:
 
+## How To
 download the docker file from the dolthub website:
 
 https://www.dolthub.com/repositories/xiaotian/options/deploy?refName=master
