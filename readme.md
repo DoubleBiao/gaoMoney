@@ -34,4 +34,7 @@ https://www.dolthub.com/repositories/xiaotian/options/data/master
 
 
 ## TODO
-mute screen printing on server side
+mute screen printing on server side:
+one potential solution, this is the chatgpt notebook:
+
+https://chatgpt.com/c/07306d12-d9bb-40e5-b12c-cf9102ee3a19
