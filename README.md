@@ -1,10 +1,30 @@
 # Portfolio Risk Prediction System
 
-A Python tool that predicts potential losses in your stock portfolio based on options market data.
+A Python tool that predicts potential losses in your stock portfolio based on options market data using E*TRADE API.
 
 ## Quick Start
 
-1. **Configure your portfolio** in `portfolio.csv`:
+1. **Configure E*TRADE API**:
+   - Create an E*TRADE developer account at https://developer.etrade.com
+   - Create a new application to get your API keys
+   - Create a `config.json` file in the project root:
+   ```json
+   {
+     "etrade": {
+       "consumer_key": "YOUR_CONSUMER_KEY",
+       "consumer_secret": "YOUR_CONSUMER_SECRET",
+       "sandbox": false
+     }
+   }
+   ```
+   - Run the test program to authorize:
+   ```bash
+   python etrade_test.py
+   ```
+   - Follow the authorization steps in the browser
+   - The access token will be saved in `etrade_tokens.json`
+
+2. **Configure your portfolio** in `portfolio.csv`:
 ```csv
 symbol,shares,benchmark,adjustment
 TSLA,68,QQQ,0.5
@@ -13,9 +33,9 @@ AMD,40,SOXX,1.0
 UBER,100,QQQ,1.0
 ```
 
-2. **Run prediction**:
+3. **Run prediction**:
 ```bash
-python predict_portfolio_loss.py --portfolio portfolio.csv --date YYYY-MM-DD
+python predict_portfolio.py --portfolio portfolio.csv --date YYYY-MM-DD
 ```
 
 Required arguments:
@@ -24,17 +44,19 @@ Required arguments:
 
 ## How It Works
 
-- Uses options data to predict potential market declines
-- Calculates individual stock risks based on their Beta values
+- Uses E*TRADE API to fetch real-time options data
+- Calculates volatility based on ATM options and open interest
+- Predicts potential market declines using 68% confidence interval
 - Adjusts risk exposure using adjustment factors (0.5 or 1.0)
 - Aggregates risks across the portfolio
 
 ## Requirements
 - Python 3.x
 - pandas
-- yfinance
 - pandas_market_calendars
+- E*TRADE API credentials
 
 ## Note
 - Target date must be a valid options expiration date
 - Results are for reference only
+- Keep your API credentials secure and never commit them to version control
