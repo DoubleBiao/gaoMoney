@@ -1,40 +1,36 @@
-# Download options data from dolthub
-dolthub is a hub for dolt database system(maybe?). It is **free**!
+# Portfolio Risk Prediction System
 
-## dolt overview:
-dolt is database system that wraps mysql. dolthub is a website similar to github. It has some database maintained by dolt. To access the data, this is procedures:
+A Python tool that predicts potential losses in your stock portfolio based on options market data.
 
-## How To
-download the docker file from the dolthub website:
+## Quick Start
 
-https://www.dolthub.com/repositories/xiaotian/options/deploy?refName=master
+1. **Configure your portfolio** in `portfolio.csv`:
+```csv
+symbol,shares,benchmark,adjustment]
+TSLA,68,QQQ,0.5
+GOOGL,123,QQQ,0.5
+AMD,40,SOXX,1.0
+UBER,100,QQQ,1.0
+```
 
-launch the database server:
+2. **Run prediction**:
+```bash
+python predict_portfolio_loss.py --portfolio portfolio.csv --date YYYY-MM-DD
+```
 
-    docker buildx build -t xiaotian-options-sql-server -f xiaotian-options.dockerfile . && docker run -p 6481:6481 xiaotian-options-sql-server:latest
+## How It Works
 
+- Uses options data to predict potential market declines
+- Calculates individual stock risks based on their Beta values
+- Adjusts risk exposure using adjustment factors (0.5 or 1.0)
+- Aggregates risks across the portfolio
 
-open another terminal and connect to the server:
+## Requirements
+- Python 3.x
+- pandas
+- yfinance
+- pandas_market_calendars
 
-    /usr/local/mysql/bin/mysql  --host 127.0.0.1 --port 6481 -u root
-
-
-It would enter a cli that the type mysql command and get data. It also directly output cvs file with shell command:
-
-    /usr/local/mysql/bin/mysql  --host 127.0.0.1 --port 6481 -u root  -e "
-    USE \`options\`
-    SELECT \`date\`, \`act_symbol\`, \`strike\`, \`call_put\`, \`vol\`
-    FROM \`option_chain\`
-    WHERE \`act_symbol\` = 'AAPL'
-    " > output.csv
-
-
-## option database in dolthub:
-https://www.dolthub.com/repositories/xiaotian/options/data/master
-
-
-## TODO
-mute screen printing on server side:
-one potential solution, this is the chatgpt notebook:
-
-https://chatgpt.com/c/07306d12-d9bb-40e5-b12c-cf9102ee3a19
+## Note
+- Target date must be a valid options expiration date
+- Results are for reference only
