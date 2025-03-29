@@ -18,6 +18,10 @@ UBER,100,QQQ,1.0
 python predict_portfolio_loss.py --portfolio portfolio.csv --date YYYY-MM-DD
 ```
 
+Required arguments:
+- `--portfolio`: Path to your portfolio configuration file (CSV format)
+- `--date`: Target prediction date (must be a valid options expiration date)
+
 ## How It Works
 
 - Uses options data to predict potential market declines
