@@ -1,12 +1,16 @@
 # Portfolio configuration
 portfolio.csv
 
+# Ignore E*TRADE configuration
+etrade_config.ini
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -22,6 +26,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Virtual Environment
+venv/
+ENV/
 
 # Logs
 *.log
@@ -47,9 +55,6 @@ res.txt
 OptionDB/
 tryDB/
 
-# Environment
-.env
-.venv
-env/
-venv/
-ENV/ 
+# Project specific
+etrade_tokens.json
+config.json 
