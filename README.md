@@ -6,7 +6,7 @@ A Python tool that predicts potential losses in your stock portfolio based on op
 
 1. **Configure your portfolio** in `portfolio.csv`:
 ```csv
-symbol,shares,benchmark,adjustment]
+symbol,shares,benchmark,adjustment
 TSLA,68,QQQ,0.5
 GOOGL,123,QQQ,0.5
 AMD,40,SOXX,1.0
