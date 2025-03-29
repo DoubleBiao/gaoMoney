@@ -5,17 +5,51 @@ portfolio.csv
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Distribution / packaging
-dist/
+*.so
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environment
-venv/
-env/
-.env/
+# Logs
+*.log
+
+# Database
+*.db
+instance/
 
 # IDE
+.idea/
 .vscode/
-.idea/ 
+*.swp
+*.swo
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Local files
+res.txt
+OptionDB/
+tryDB/
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/ 
