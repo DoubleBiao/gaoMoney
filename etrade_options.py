@@ -1,18 +1,21 @@
 import pyetrade
-import configparser
 import json
 from datetime import datetime, timedelta
 import os
 
 def load_config():
     """加载E*TRADE API配置"""
-    config = configparser.ConfigParser()
-    config.read('etrade_config.ini')
-    return {
-        'consumer_key': config['API']['CONSUMER_KEY'],
-        'consumer_secret': config['API']['CONSUMER_SECRET'],
-        'environment': config['API']['ENVIRONMENT']
-    }
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        return {
+            'consumer_key': config['etrade']['consumer_key'],
+            'consumer_secret': config['etrade']['consumer_secret'],
+            'environment': 'PROD' if not config['etrade']['sandbox'] else 'SANDBOX'
+        }
+    except Exception as e:
+        print(f"加载配置文件时出错: {str(e)}")
+        return None
 
 def save_tokens(tokens):
     """保存访问令牌"""

@@ -34,7 +34,7 @@ def predict_portfolio_scenarios(portfolio_df, target_date):
         shares = row['shares']
         benchmark = row['benchmark']
         adjustment = row['adjustment']
-        call_options = row.get('call_options', 0)
+        options = row.get('options', 0)
         
         # 获取当前价格
         current_price = get_stock_price(market, symbol)
@@ -51,10 +51,10 @@ def predict_portfolio_scenarios(portfolio_df, target_date):
         # 如果有期权，计算期权部分的预期收益
         option_investment = 0
         option_gain = 0
-        if call_options > 0:
+        if options > 0:
             option_price = get_atm_option_price(market, symbol, target_date)
             if option_price is not None:
-                option_investment = option_price * 100 * call_options
+                option_investment = option_price * 100 * options
                 total_investment += option_investment
                 
                 # 计算期权收益
@@ -65,7 +65,7 @@ def predict_portfolio_scenarios(portfolio_df, target_date):
                 
                 expected_rise = benchmark_rise
                 option_value = current_price * (1 + expected_rise)
-                option_gain = (option_value - current_price) * 100 * call_options
+                option_gain = (option_value - current_price) * 100 * options
                 total_gain += option_gain
         
         total_loss += expected_loss
@@ -80,7 +80,7 @@ def predict_portfolio_scenarios(portfolio_df, target_date):
             'benchmark': benchmark,
             'expected_loss': expected_loss,
             'expected_loss_pct': benchmark_drop,
-            'call_options': call_options,
+            'options': options,
             'option_investment': option_investment,
             'option_gain': option_gain,
             'option_gain_pct': (option_gain / option_investment * 100) if option_investment > 0 else 0
@@ -90,7 +90,10 @@ def predict_portfolio_scenarios(portfolio_df, target_date):
     print("\n📈 乐观情景（市场上涨）")
     print("-" * 60)
     print(f"总投资金额（期权）：${total_investment:,.2f}")
-    print(f"预期总收益：${total_gain:,.2f} ({total_gain/total_investment*100:.1f}% ROI)")
+    if total_investment > 0:
+        print(f"预期总收益：${total_gain:,.2f} ({total_gain/total_investment*100:.1f}% ROI)")
+    else:
+        print("预期总收益：$0.00 (0.0% ROI)")
     print(f"\n基准指数预期涨幅：")
     print(f"QQQ: {(qqq_range[1] - qqq_range[0]) / qqq_range[0] * 100:.1f}%")
     print(f"SOXX: {(soxx_range[1] - soxx_range[0]) / soxx_range[0] * 100:.1f}%")
@@ -107,16 +110,16 @@ def predict_portfolio_scenarios(portfolio_df, target_date):
     print("\n📊 个股分析")
     print("-" * 60)
     
-    for result in sorted(stock_results, key=lambda x: abs(x['option_gain'] if x['call_options'] > 0 else x['expected_loss']), reverse=True):
+    for result in sorted(stock_results, key=lambda x: abs(x['option_gain'] if x['options'] > 0 else x['expected_loss']), reverse=True):
         print(f"\n{result['symbol']}:")
         print(f"  当前价格: ${result['current_price']:.2f}")
         print(f"  持股数量: {result['shares']}股 (调整后: {result['adjusted_shares']:.1f}股)")
         print(f"  持仓市值: ${result['stock_value']:,.2f}")
         print(f"  基准指数: {result['benchmark']}")
         
-        if result['call_options'] > 0:
+        if result['options'] > 0:
             print(f"  期权策略:")
-            print(f"    - 期权数量: {result['call_options']}份")
+            print(f"    - 期权数量: {result['options']}份")
             print(f"    - 投资金额: ${result['option_investment']:,.2f}")
             print(f"    - 预期收益: ${result['option_gain']:,.2f} ({result['option_gain_pct']:.1f}%)")
         
