@@ -26,12 +26,19 @@ A Python tool that predicts potential losses in your stock portfolio based on op
 
 2. **Configure your portfolio** in `portfolio.csv`:
 ```csv
-symbol,shares,benchmark,adjustment
-TSLA,68,QQQ,0.5
-GOOGL,123,QQQ,0.5
-AMD,40,SOXX,1.0
-UBER,100,QQQ,1.0
+symbol,shares,benchmark,adjustment,options
+TSLA,68,QQQ,0.5,1
+GOOGL,123,QQQ,0.5,1
+AMD,40,SOXX,1.0,1
+UBER,100,QQQ,1.0,0
 ```
+
+Columns:
+- `symbol`: Stock symbol (e.g., TSLA, GOOGL)
+- `shares`: Number of shares
+- `benchmark`: Benchmark index (QQQ or SOXX)
+- `adjustment`: Risk adjustment factor (0.5 or 1.0)
+- `options`: Number of options contracts (0 for no options)
 
 3. **Run prediction**:
 ```bash
