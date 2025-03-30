@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portfolio Strategy Evaluation Report</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .section { margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 8px; text-align: right; border: 1px solid #ddd; }
+        th { background-color: #f5f5f5; }
+        .chart { text-align: center; margin: 20px 0; height: 600px; }
+        .editable { cursor: pointer; }
+        .editable:hover { background-color: #f0f0f0; }
+        .controls { margin: 20px 0; }
+        button { padding: 10px 20px; margin: 5px; }
+        .error { color: red; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Portfolio Strategy Evaluation Report</h1>
+            {% if error %}
+            <div class="alert alert-danger">
+                {{ error }}
+            </div>
+            {% endif %}
+            <div class="controls">
+                <input type="date" id="predictionDate" value="{{ today }}">
+                <button onclick="updatePrediction()">Update Prediction</button>
+            </div>
+            <p id="evaluationDate"></p>
+        </div>
+        
+        <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+        
+        <div class="section">
+            <h2>Portfolio Composition</h2>
+            <table id="portfolioTable">
+                <tr>
+                    <th>Stock</th>
+                    <th>Shares</th>
+                    <th>Benchmark</th>
+                    <th>Adjustment</th>
+                    <th>Options</th>
+                </tr>
+                {% for stock in portfolio %}
+                <tr>
+                    <td>{{ stock.symbol }}</td>
+                    <td class="editable" data-field="shares">{{ stock.shares }}</td>
+                    <td class="editable" data-field="benchmark">{{ stock.benchmark }}</td>
+                    <td class="editable" data-field="adjustment">{{ stock.adjustment }}</td>
+                    <td class="editable" data-field="options">{{ stock.options }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div id="results">
+            <!-- 结果将通过 JavaScript 动态加载 -->
+        </div>
+    </div>
+
+    <script>
+        // 使表格单元格可编辑
+        document.querySelectorAll('.editable').forEach(cell => {
+            cell.addEventListener('click', function() {
+                const currentValue = this.textContent;
+                const input = document.createElement('input');
+                input.value = currentValue;
+                input.className = 'edit-input';
+                this.textContent = '';
+                this.appendChild(input);
+                input.focus();
+                input.addEventListener('blur', function() {
+                    cell.textContent = this.value;
+                });
+            });
+        });
+
+        // 获取当前投资组合数据
+        function getPortfolioData() {
+            const rows = document.querySelectorAll('#portfolioTable tr:not(:first-child)');
+            return Array.from(rows).map(row => {
+                const cells = row.querySelectorAll('td');
+                return {
+                    symbol: cells[0].textContent.trim(),
+                    shares: parseInt(cells[1].textContent),
+                    benchmark: cells[2].textContent.trim(),
+                    adjustment: parseFloat(cells[3].textContent),
+                    options: parseInt(cells[4].textContent) || 0
+                };
+            });
+        }
+
+        // 更新预测
+        async function updatePrediction() {
+            try {
+                const portfolioData = getPortfolioData();
+                const targetDate = document.getElementById('predictionDate').value;
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        portfolio_data: portfolioData,
+                        target_date: targetDate
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || '分析过程中发生错误');
+                }
+
+                // 隐藏错误消息
+                document.getElementById('errorMessage').style.display = 'none';
+                
+                // 更新结果显示
+                updateResults(data);
+            } catch (error) {
+                console.error('Error:', error);
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // 更新结果显示
+        function updateResults(result) {
+            const resultsDiv = document.getElementById('results');
+            document.getElementById('evaluationDate').textContent = `Evaluation Date: ${result.evaluation_date}`;
+            let html = '';
+
+            // 添加基准指数预测
+            if (result.benchmark_predictions) {
+                html += `
+                    <div class="section">
+                        <h2>Benchmark Index Predictions</h2>
+                        <table>
+                            <tr>
+                                <th>Index</th>
+                                <th>Rise Rate</th>
+                                <th>Drop Rate</th>
+                            </tr>
+                            ${Object.entries(result.benchmark_predictions).map(([index, rates]) => `
+                                <tr>
+                                    <td>${index}</td>
+                                    <td>${(rates.rise * 100).toFixed(1)}%</td>
+                                    <td>${(rates.drop * 100).toFixed(1)}%</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>
+                `;
+            }
+
+            // 添加股票分析
+            if (result.stock_analysis && Array.isArray(result.stock_analysis)) {
+                html += `
+                    <div class="section">
+                        <h2>Stock Analysis</h2>
+                        <table>
+                            <tr>
+                                <th>Stock</th>
+                                <th>Current Price</th>
+                                <th>Shares</th>
+                                <th>Shares Sold</th>
+                                <th>Benchmark</th>
+                                <th>Beta</th>
+                                <th>Variation Ratio</th>
+                                <th>Price Range</th>
+                                <th>Value Change</th>
+                            </tr>
+                            ${result.stock_analysis.map(stock => {
+                                const benchmark = result.benchmark_predictions[stock.benchmark];
+                                const variationRatio = (benchmark.rise * stock.beta * 100).toFixed(1) + '%';
+                                const priceRange = '$' + (stock.current_price * (1 - benchmark.drop * stock.beta)).toFixed(2) + ' / ' +
+                                                 '$' + (stock.current_price * (1 + benchmark.rise * stock.beta)).toFixed(2);
+                                const valueChange = '$' + (stock.shares_sold * stock.current_price * benchmark.rise * stock.beta).toFixed(2);
+                                return `
+                                    <tr>
+                                        <td>${stock.symbol}</td>
+                                        <td>$${stock.current_price.toFixed(2)}</td>
+                                        <td>${stock.shares}</td>
+                                        <td>${stock.shares_sold.toFixed(1)}</td>
+                                        <td>${stock.benchmark}</td>
+                                        <td>${stock.beta.toFixed(2)}</td>
+                                        <td>${variationRatio}</td>
+                                        <td>${priceRange}</td>
+                                        <td>${valueChange}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                            ${(() => {
+                                const totalValueChange = result.stock_analysis.reduce((sum, stock) => {
+                                    const benchmark = result.benchmark_predictions[stock.benchmark];
+                                    return sum + stock.shares_sold * stock.current_price * benchmark.rise * stock.beta;
+                                }, 0);
+                                return `
+                                    <tr style="font-weight: bold; background-color: #f9f9f9;">
+                                        <td colspan="8" style="text-align: right;">Total Value Change:</td>
+                                        <td>$${totalValueChange.toFixed(2)}</td>
+                                    </tr>
+                                `;
+                            })()}
+                        </table>
+                    </div>
+                `;
+            }
+
+            // 添加市场情景分析图表和表格
+            if (result.market_scenarios && result.market_scenarios.plot_data) {
+                const plotData = result.market_scenarios.plot_data;
+                html += `
+                    <div class="section">
+                        <h2>Market Scenarios Analysis</h2>
+                        <div id="scenariosChart" class="chart"></div>
+                        
+                        <h3>Market Rise Scenario Analysis</h3>
+                        <table>
+                            <tr>
+                                <th>Probability</th>
+                                <th>Total Opportunity Cost</th>
+                                <th>Total Option Gain</th>
+                                <th>Net Loss</th>
+                            </tr>
+                            ${result.market_scenarios.rise_scenarios.map(scenario => `
+                                <tr>
+                                    <td>${Math.round(scenario.probability)}%</td>
+                                    <td>$${scenario.opportunity_cost.toFixed(2)}</td>
+                                    <td>$${scenario.option_gain.toFixed(2)}</td>
+                                    <td>$${scenario.net_loss.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                        
+                        <h3>Market Drop Scenario Analysis</h3>
+                        <table>
+                            <tr>
+                                <th>Probability</th>
+                                <th>Total Price Difference</th>
+                                <th>Total Option Gain</th>
+                                <th>Net Gain</th>
+                            </tr>
+                            ${result.market_scenarios.drop_scenarios.map(scenario => `
+                                <tr>
+                                    <td>${Math.round(scenario.probability)}%</td>
+                                    <td>$${scenario.price_difference.toFixed(2)}</td>
+                                    <td>$${scenario.option_gain.toFixed(2)}</td>
+                                    <td>$${scenario.net_gain.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>
+                `;
+                
+                resultsDiv.innerHTML = html;
+                
+                // 准备下跌场景数据（负x值）
+                const dropProbs = plotData.drop_probs.slice();
+                const dropTotalValues = plotData.drop_results.total_gain.slice();
+                const dropPriceValues = plotData.drop_results.price_diff.slice();
+                const dropOptionValues = plotData.drop_results.option_impact.slice();
+                
+                // 对下跌数据进行排序（按概率从小到大）
+                const dropIndices = dropProbs.map((_, i) => i);
+                dropIndices.sort((a, b) => dropProbs[a] - dropProbs[b]);
+                
+                const dropX = dropIndices.map(i => -dropProbs[i]);
+                const dropTotal = dropIndices.map(i => dropTotalValues[i]);
+                const dropPrice = dropIndices.map(i => dropPriceValues[i]);
+                const dropOption = dropIndices.map(i => dropOptionValues[i]);
+                
+                // 准备上涨场景数据（正x值）
+                const riseProbs = plotData.rise_probs.slice();
+                const riseTotalValues = plotData.rise_results.total_loss.slice();
+                const risePriceValues = plotData.rise_results.opportunity_cost.slice();
+                const riseOptionValues = plotData.rise_results.option_impact.slice();
+                
+                // 对上涨数据进行排序（按概率从小到大）
+                const riseIndices = riseProbs.map((_, i) => i);
+                riseIndices.sort((a, b) => riseProbs[a] - riseProbs[b]);
+                
+                const riseX = riseIndices.map(i => riseProbs[i]);
+                const riseTotal = riseIndices.map(i => riseTotalValues[i]);
+                const risePrice = riseIndices.map(i => risePriceValues[i]);
+                const riseOption = riseIndices.map(i => riseOptionValues[i]);
+                
+                // 创建图表轨迹
+                const traces = [
+                    // 总回报线（蓝色实线）- 下跌段
+                    {
+                        x: dropX,
+                        y: dropTotal,
+                        name: 'Total Return',
+                        type: 'scatter',
+                        line: {color: 'blue', width: 2},
+                        showlegend: true
+                    },
+                    // 总回报线（蓝色实线）- 上涨段
+                    {
+                        x: riseX,
+                        y: riseTotal,
+                        name: 'Total Return',
+                        type: 'scatter',
+                        line: {color: 'blue', width: 2},
+                        showlegend: false
+                    },
+                    // 股价影响线（绿色虚线）- 下跌段
+                    {
+                        x: [...dropX, 0],
+                        y: [...dropPrice, 0],
+                        name: 'Stock Price Impact',
+                        type: 'scatter',
+                        line: {color: 'green', width: 2, dash: 'dash'},
+                        showlegend: true
+                    },
+                    // 股价影响线（绿色虚线）- 上涨段
+                    {
+                        x: [0, ...riseX],
+                        y: [0, ...risePrice],
+                        name: 'Stock Price Impact',
+                        type: 'scatter',
+                        line: {color: 'green', width: 2, dash: 'dash'},
+                        showlegend: false
+                    },
+                    // 期权影响线（红色虚线）- 下跌段
+                    {
+                        x: dropX,
+                        y: dropOption,
+                        name: 'Option Impact',
+                        type: 'scatter',
+                        line: {color: 'red', width: 2, dash: 'dash'},
+                        showlegend: true
+                    },
+                    // 期权影响线（红色虚线）- 上涨段
+                    {
+                        x: riseX,
+                        y: riseOption,
+                        name: 'Option Impact',
+                        type: 'scatter',
+                        line: {color: 'red', width: 2, dash: 'dash'},
+                        showlegend: false
+                    }
+                ];
+                
+                // 计算y轴范围
+                const allYValues = [...dropTotal, ...dropPrice, ...dropOption, ...riseTotal, ...risePrice, ...riseOption];
+                const maxY = Math.max(...allYValues);
+                const minY = Math.min(...allYValues);
+                const yRange = maxY - minY;
+                
+                // 创建布局
+                const layout = {
+                    title: {
+                        text: 'Portfolio Performance Analysis',
+                        font: {size: 24}
+                    },
+                    xaxis: {
+                        title: 'Market Change (%)',
+                        gridcolor: '#eee',
+                        zerolinecolor: '#000',
+                        zerolinewidth: 2,
+                        tickfont: {size: 12},
+                        titlefont: {size: 14},
+                        range: [-120, 120],
+                        dtick: 20,
+                        showgrid: true
+                    },
+                    yaxis: {
+                        title: 'Amount ($)',
+                        gridcolor: '#eee',
+                        zerolinecolor: '#000',
+                        zerolinewidth: 2,
+                        tickfont: {size: 12},
+                        titlefont: {size: 14},
+                        range: [minY - yRange * 0.1, maxY + yRange * 0.1],
+                        showgrid: true
+                    },
+                    plot_bgcolor: 'white',
+                    paper_bgcolor: 'white',
+                    showlegend: true,
+                    legend: {
+                        x: 0.02,
+                        y: 0.98,
+                        bgcolor: 'rgba(255, 255, 255, 0.8)',
+                        bordercolor: '#ddd',
+                        borderwidth: 1,
+                        font: {size: 12}
+                    },
+                    annotations: [
+                        {
+                            x: -60,
+                            y: maxY - yRange * 0.1,
+                            text: 'Drop Scenario',
+                            showarrow: false,
+                            font: {size: 14}
+                        },
+                        {
+                            x: 60,
+                            y: maxY - yRange * 0.1,
+                            text: 'Rise Scenario',
+                            showarrow: false,
+                            font: {size: 14}
+                        }
+                    ],
+                    margin: {
+                        l: 80,
+                        r: 50,
+                        t: 100,
+                        b: 80
+                    },
+                    shapes: [
+                        {
+                            type: 'line',
+                            x0: 0,
+                            y0: minY - yRange * 0.1,
+                            x1: 0,
+                            y1: maxY + yRange * 0.1,
+                            line: {
+                                color: '#000',
+                                width: 2
+                            }
+                        }
+                    ]
+                };
+                
+                Plotly.newPlot('scenariosChart', traces, layout);
+            } else {
+                resultsDiv.innerHTML = html;
+            }
+        }
+
+        // 页面加载时自动运行一次预测
+        document.addEventListener('DOMContentLoaded', updatePrediction);
+    </script>
+</body>
+</html> 

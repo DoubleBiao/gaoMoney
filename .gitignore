@@ -4,6 +4,17 @@ portfolio.csv
 # Ignore E*TRADE configuration
 etrade_config.ini
 
+# API密钥和验证码
+etrade_config.py
+etrade_config.json
+*.key
+verification_code.txt
+
+# 数据文件
+*.csv
+*.xlsx
+*.xls
+
 # Python
 __pycache__/
 *.py[cod]
@@ -57,4 +68,8 @@ tryDB/
 
 # Project specific
 etrade_tokens.json
-config.json 
+config.json
+
+# 系统文件
+.DS_Store
+Thumbs.db 
