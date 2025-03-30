@@ -1,24 +1,30 @@
 # Portfolio Risk Predictor Web Application
 
-这是一个基于 Flask 的投资组合风险预测 Web 应用。它允许用户动态调整投资组合参数，并实时查看风险预测结果。
+A Flask-based web application for portfolio risk prediction that enables users to dynamically adjust portfolio parameters and view risk prediction results in real-time.
 
-## 功能特点
+## Features
 
-- 动态编辑投资组合参数（股票数量、基准指数、调整因子、期权数量）
-- 实时更新风险预测
-- 可视化展示预测结果
-- 支持多个市场情景分析
+- Interactive portfolio parameter editing (stock shares, benchmark indices, beta factors, option quantities)
+- Real-time risk prediction updates
+- Visual representation of prediction results through interactive charts
+- Comprehensive market scenario analysis
+- Support for both stock and option portfolio analysis
 
-## 安装步骤
+## Installation
 
-1. 安装依赖：
+1. Clone the repository and navigate to the predictor directory:
+```bash
+cd predictor
+```
+
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. 配置 E*TRADE API：
-- 确保 `config.json` 文件包含有效的 API 凭证
-- 文件格式：
+3. Configure E*TRADE API:
+- Create a `config.json` file in the project root with valid API credentials
+- File format:
 ```json
 {
     "etrade": {
@@ -29,35 +35,75 @@ pip install -r requirements.txt
 }
 ```
 
-3. 准备投资组合数据：
-- 在项目根目录创建 `portfolio.csv` 文件
-- 包含以下列：symbol, shares, benchmark, adjustment, options
+4. Prepare portfolio data:
+- Create a `portfolio.csv` file in the project root
+- Required columns: symbol, shares, benchmark, adjustment, options
+- Example format:
+```csv
+symbol,shares,benchmark,adjustment,options
+AAPL,100,SPY,1.2,10
+GOOGL,50,QQQ,1.1,5
+```
 
-## 运行应用
+## Running the Application
 
+Start the Flask application:
 ```bash
 python app.py
 ```
 
-然后在浏览器中访问 `http://localhost:5000`
+Access the web interface at `http://127.0.0.1:8080`
 
-## 使用方法
+## Usage Guide
 
-1. 在网页界面中，你可以直接点击表格中的数值进行编辑
-2. 选择预测日期
-3. 点击 "Update Prediction" 按钮更新预测结果
-4. 查看更新后的风险预测和情景分析
+1. Portfolio Management:
+   - Click on table cells to edit portfolio parameters
+   - Adjust stock shares, benchmark indices, and beta factors
+   - Modify option quantities as needed
 
-## 项目结构
+2. Risk Analysis:
+   - The application provides three key metrics:
+     - Total Return: Combined impact of stock and option positions
+     - Stock Price Impact: Direct effect of market movements on stock value
+     - Option Impact: Changes in option values under different scenarios
+
+3. Market Scenarios:
+   - Drop Scenario: Analysis of portfolio performance in bearish markets
+   - Rise Scenario: Analysis of portfolio performance in bullish markets
+   - Probability range: -120% to +120% market movement
+
+4. Interactive Charts:
+   - Hover over chart lines to view detailed values
+   - Use the toolbar to zoom, pan, or download the chart
+   - Toggle different metrics using the legend
+
+## Project Structure
 
 ```
 predictor/
-├── app.py              # Flask 应用主文件
-├── requirements.txt    # 项目依赖
-├── models/            # 预测模型
+├── app.py                    # Flask application main file
+├── requirements.txt          # Project dependencies
+├── models/                   # Prediction models
 │   └── portfolio_predictor.py
-├── static/            # 静态文件
-├── templates/         # HTML 模板
+├── templates/               # HTML templates
 │   └── index.html
-└── README.md         # 项目文档
-``` 
+└── README.md               # Project documentation
+```
+
+## Security Notes
+
+- Never commit API credentials or sensitive data
+- Keep your `config.json` and portfolio data files private
+- Use environment variables for production deployments
+
+## Troubleshooting
+
+1. API Connection Issues:
+   - Verify API credentials in config.json
+   - Ensure network connectivity
+   - Check E*TRADE API service status
+
+2. Data Display Problems:
+   - Confirm CSV file format is correct
+   - Verify all required columns are present
+   - Check for valid numeric values in data fields 
