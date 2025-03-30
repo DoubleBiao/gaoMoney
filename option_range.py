@@ -48,213 +48,153 @@ def get_target_expiry(symbol, target_date=None, weeks=None):
         elif weeks:
             target = current_date + timedelta(weeks=weeks)
         else:
-            target = current_date + timedelta(weeks=3)
+            target = current_date + timedelta(weeks=4)  # 默认4周
             
-        # 获取期权到期日列表
-        response = market.get_option_expire_dates(symbol, resp_format='json')
+        # 获取期权到期日
+        response = market.get_option_expire_date(symbol, resp_format='json')
         
-        if 'ExpirationDate' not in response:
+        if 'OptionExpireDateResponse' not in response:
             print(f"错误：股票 '{symbol}' 没有可用的期权数据。")
             sys.exit(1)
             
         expiry_dates = []
-        for date_info in response['ExpirationDate']:
-            expiry_date = datetime.strptime(date_info['date'], '%Y%m%d').strftime('%Y-%m-%d')
+        for date_info in response['OptionExpireDateResponse'].get('ExpirationDate', []):
+            expiry_date = datetime(
+                year=date_info['year'],
+                month=date_info['month'],
+                day=date_info['day']
+            ).date()
             expiry_dates.append(expiry_date)
             
         if not expiry_dates:
             print(f"错误：股票 '{symbol}' 没有可用的期权。")
             sys.exit(1)
             
-        if target_date:
-            if target_date not in expiry_dates:
-                print(f"错误：{symbol} 在 {target_date} 没有可用的期权。")
-                print(f"{symbol} 的可用期权日期：{', '.join(sorted(expiry_dates))}")
-                sys.exit(1)
-            return target_date
-        else:
-            # 找到大于等于目标日期的最近期权日期
-            valid_dates = [d for d in expiry_dates if datetime.strptime(d, '%Y-%m-%d').date() >= target]
-            if not valid_dates:
-                print(f"错误：{symbol} 没有晚于目标日期 {target} 的期权。")
-                print(f"{symbol} 的可用期权日期：{', '.join(sorted(expiry_dates))}")
-                sys.exit(1)
-            return min(valid_dates)
-            
+        # 找到最接近目标日期的到期日
+        closest_date = min(expiry_dates, key=lambda x: abs((x - target).days))
+        return closest_date
+        
     except Exception as e:
-        print(f"错误：获取期权日期时发生错误：{str(e)}")
+        print(f"错误：获取目标到期日时发生错误：{str(e)}")
         sys.exit(1)
 
 def get_option_range(symbol, target_date):
-    """获取期权的价格范围"""
+    """获取期权范围"""
     try:
         market = get_market_instance()
         if not market:
             print(f"错误：无法获取E*TRADE市场实例。")
             sys.exit(1)
             
+        # 获取目标到期日
+        expiry_date = get_target_expiry(symbol, target_date)
+        
+        # 获取当前价格
         current_price = get_stock_price(market, symbol)
         if current_price is None:
-            print(f"错误：无法获取股票 '{symbol}' 的当前价格。")
+            print(f"错误：无法获取 {symbol} 的当前价格。")
             sys.exit(1)
             
-        # 转换目标日期为datetime对象
-        target_date = datetime.strptime(target_date, '%Y-%m-%d')
-        
         # 获取期权链
         response = market.get_option_chains(
             symbol,
-            expiry_date=target_date,
+            expiry_date=expiry_date,
             resp_format='json'
         )
         
         if 'OptionChainResponse' not in response:
-            print(f"错误：无法获取股票 '{symbol}' 的期权链数据。")
+            print(f"错误：无法获取 {symbol} 的期权链。")
             sys.exit(1)
             
+        # 计算期权范围
         pairs = response['OptionChainResponse'].get('OptionPair', [])
-        
-        # 找到平值期权附近的期权对
         atm_pairs = []
+        
+        # 找到平值期权对
         for pair in pairs:
             if 'Call' in pair and 'Put' in pair:
                 strike = float(pair['Call']['strikePrice'])
-                # 只关注当前价格±5%范围内的期权
-                if abs(strike - current_price) <= current_price * 0.05:
-                    atm_pairs.append(pair)
+                # 找到最接近当前价格的行权价
+                if abs(strike - current_price) <= 1:
+                    # 获取看涨和看跌期权的中间价格
+                    call_bid = float(pair['Call'].get('bid', 0))
+                    call_ask = float(pair['Call'].get('ask', 0))
+                    put_bid = float(pair['Put'].get('bid', 0))
+                    put_ask = float(pair['Put'].get('ask', 0))
+                    
+                    # 使用中间价格
+                    call_price = (call_bid + call_ask) / 2 if call_bid > 0 and call_ask > 0 else 0
+                    put_price = (put_bid + put_ask) / 2 if put_bid > 0 and put_ask > 0 else 0
+                    
+                    # 计算跨式期权组合的价格
+                    straddle_price = call_price + put_price
+                    
+                    print(f"平值期权对 - 行权价: {strike}, Call价格: {call_price:.2f}, Put价格: {put_price:.2f}, 跨式组合价格: {straddle_price:.2f}")
+                    
+                    atm_pairs.append({
+                        'strike': strike,
+                        'straddle_price': straddle_price
+                    })
         
         if not atm_pairs:
-            print(f"错误：无法找到股票 '{symbol}' 的平值期权。")
+            print(f"错误：无法获取 {symbol} 的平值期权数据。")
             sys.exit(1)
-        
-        # 计算天数
-        days_to_expiry = (target_date.date() - get_current_market_date()).days
-        
-        # 计算平值期权附近的加权平均IV
-        total_oi = 0
-        weighted_iv = 0
-        
-        for pair in atm_pairs:
-            # 计算未平仓量
-            call_oi = int(pair['Call']['openInterest'])
-            put_oi = int(pair['Put']['openInterest'])
-            pair_oi = call_oi + put_oi
             
-            # 更新总未平仓量
-            total_oi += pair_oi
-            
-            # 计算加权隐含波动率
-            call_iv = float(pair['Call']['OptionGreeks']['iv'])
-            put_iv = float(pair['Put']['OptionGreeks']['iv'])
-            pair_iv = (call_iv + put_iv) / 2
-            weighted_iv += pair_iv * pair_oi
+        # 计算平均跨式期权组合价格
+        avg_straddle_price = sum(pair['straddle_price'] for pair in atm_pairs) / len(atm_pairs)
         
-        # 使用加权平均的隐含波动率
-        volatility = weighted_iv / total_oi if total_oi > 0 else 0
+        # 计算预期波动范围（使用85%的跨式期权组合价格）
+        expected_move = avg_straddle_price * 0.85
         
-        # 使用1个标准差（68%置信区间）
-        std_dev = current_price * volatility * np.sqrt(days_to_expiry / 365)
-        lower_bound = current_price - std_dev
-        upper_bound = current_price + std_dev
+        # 计算涨跌幅
+        rate = (expected_move / current_price) * 100
         
-        return (lower_bound, upper_bound)
+        return [current_price - expected_move, current_price + expected_move, rate, rate]
+        
     except Exception as e:
         print(f"错误：计算期权范围时发生错误：{str(e)}")
         sys.exit(1)
 
 def predict_drop_rate(symbol, target_date=None, weeks=None):
-    """预测股票下跌率"""
+    """预测下跌率"""
     try:
         market = get_market_instance()
         if not market:
             print(f"错误：无法获取E*TRADE市场实例。")
             sys.exit(1)
             
+        # 获取目标到期日
+        expiry_date = get_target_expiry(symbol, target_date, weeks)
+        
+        # 获取当前价格
         current_price = get_stock_price(market, symbol)
         if current_price is None:
-            print(f"错误：无法获取股票 '{symbol}' 的当前价格。")
+            print(f"错误：无法获取 {symbol} 的当前价格。")
             sys.exit(1)
-        
-        # 如果没有指定日期，使用默认的3周
-        if target_date is None:
-            if weeks is None:
-                weeks = 3
-            target_date = (datetime.now() + timedelta(weeks=weeks)).strftime('%Y-%m-%d')
-        
-        # 转换目标日期为datetime对象
-        target_date_obj = datetime.strptime(target_date, '%Y-%m-%d')
-        
+            
         # 获取期权链
-        response = market.get_option_chains(
+        option_chain = market.get_option_chain(
             symbol,
-            expiry_date=target_date_obj,
-            resp_format='json'
+            expiry_date.strftime('%Y%m%d'),
+            option_category='ALL',
+            chain_type='PUTS'
         )
         
-        if 'OptionChainResponse' not in response:
-            print(f"错误：无法获取股票 '{symbol}' 的期权链数据。")
+        if not option_chain:
+            print(f"错误：无法获取 {symbol} 的期权链。")
             sys.exit(1)
             
-        pairs = response['OptionChainResponse'].get('OptionPair', [])
-        
-        # 找到平值期权附近的期权对
-        atm_pairs = []
-        for pair in pairs:
-            if 'Call' in pair and 'Put' in pair:
-                strike = float(pair['Call']['strikePrice'])
-                # 只关注当前价格±5%范围内的期权
-                if abs(strike - current_price) <= current_price * 0.05:
-                    atm_pairs.append(pair)
-        
-        if not atm_pairs:
-            print(f"错误：无法找到股票 '{symbol}' 的平值期权。")
-            sys.exit(1)
-        
-        # 计算天数
-        days_to_expiry = (target_date_obj.date() - get_current_market_date()).days
-        
-        # 计算平值期权附近的加权平均IV
-        total_oi = 0
-        weighted_iv = 0
-        
-        for pair in atm_pairs:
-            # 计算未平仓量
-            call_oi = int(pair['Call']['openInterest'])
-            put_oi = int(pair['Put']['openInterest'])
-            pair_oi = call_oi + put_oi
-            
-            # 更新总未平仓量
-            total_oi += pair_oi
-            
-            # 计算加权隐含波动率
-            call_iv = float(pair['Call']['OptionGreeks']['iv'])
-            put_iv = float(pair['Put']['OptionGreeks']['iv'])
-            pair_iv = (call_iv + put_iv) / 2
-            weighted_iv += pair_iv * pair_oi
-        
-        # 使用加权平均的隐含波动率
-        volatility = weighted_iv / total_oi if total_oi > 0 else 0
-        
-        # 使用1个标准差（68%置信区间）
-        std_dev = current_price * volatility * np.sqrt(days_to_expiry / 365)
-        lower_bound = current_price - std_dev
-        upper_bound = current_price + std_dev
-        
-        # 计算下跌率（使用百分比表示）
-        drop_rate = ((current_price - lower_bound) / current_price) * 100
+        # 计算下跌率
+        strike_prices = [float(opt['strikePrice']) for opt in option_chain]
+        min_strike = min(strike_prices)
+        drop_rate = ((current_price - min_strike) / current_price) * 100
         
         return {
-            'symbol': symbol,
-            'current_price': current_price,
-            'expiry': target_date,
-            'days_to_expiry': days_to_expiry,
-            'volatility': volatility,
-            'lower_bound': lower_bound,
-            'upper_bound': upper_bound,
             'drop_rate': drop_rate,
-            'total_oi': total_oi,
-            'atm_pairs_count': len(atm_pairs)
+            'min_strike': min_strike,
+            'current_price': current_price
         }
+        
     except Exception as e:
         print(f"错误：预测下跌率时发生错误：{str(e)}")
         sys.exit(1)
