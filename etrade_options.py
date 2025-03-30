@@ -118,7 +118,8 @@ def get_atm_option_price(market, symbol, target_date):
             return None
             
         # 转换目标日期为datetime对象
-        target_date = datetime.strptime(target_date, '%Y-%m-%d')
+        if isinstance(target_date, str):
+            target_date = datetime.strptime(target_date, '%Y-%m-%d')
         
         # 获取期权链
         response = market.get_option_chains(
@@ -147,17 +148,25 @@ def get_atm_option_price(market, symbol, target_date):
                     closest_option = pair['Call']
         
         if closest_option:
+            # 获取bid和ask价格
+            try:
+                bid = float(closest_option.get('bid', 0))
+                ask = float(closest_option.get('ask', 0))
+                volume = int(closest_option.get('volume', 0))
+            except (ValueError, TypeError):
+                bid = 0
+                ask = 0
+                volume = 0
+            
             # 打印期权信息
             print(f"\n选择的期权信息:")
             print(f"当前价格: ${current_price:.2f}")
             print(f"选择的行权价: ${closest_strike:.2f}")
-            print(f"Bid: ${closest_option['bid']:.2f}")
-            print(f"Ask: ${closest_option['ask']:.2f}")
-            print(f"Volume: {closest_option['volume']}")
+            print(f"Bid: ${bid:.2f}")
+            print(f"Ask: ${ask:.2f}")
+            print(f"Volume: {volume}")
             
             # 返回bid和ask的平均值
-            bid = float(closest_option['bid'])
-            ask = float(closest_option['ask'])
             if bid > 0 and ask > 0:
                 return (bid + ask) / 2
             elif bid > 0:
@@ -172,4 +181,22 @@ def get_atm_option_price(market, symbol, target_date):
 def check_option_availability(market, symbol, target_date):
     """检查指定日期是否有可用的期权"""
     dates = get_option_expiry_dates(market, symbol)
-    return target_date in dates 
+    return target_date in dates
+
+def get_stock_beta(market, symbol):
+    """获取个股的beta值"""
+    try:
+        # 获取股票信息
+        response = market.get_quote([symbol], resp_format='json')
+        if 'QuoteResponse' in response and 'QuoteData' in response['QuoteResponse']:
+            quote = response['QuoteResponse']['QuoteData'][0]
+            if 'All' in quote:
+                beta = float(quote['All'].get('beta', 1.0))
+                
+                # 确保beta值在合理范围内（0.5-2.0）
+                beta = max(0.5, min(2.0, beta))
+                
+                return beta
+    except Exception as e:
+        print(f"警告：获取{symbol}的beta值时发生错误：{str(e)}，使用默认值1.0")
+    return 1.0 

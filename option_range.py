@@ -44,56 +44,61 @@ def get_target_expiry(symbol, target_date=None, weeks=None):
         
         # 如果指定了target_date，验证它
         if target_date:
-            target = validate_date(target_date)
+            if isinstance(target_date, str):
+                target = validate_date(target_date)
+            else:
+                target = target_date
         elif weeks:
             target = current_date + timedelta(weeks=weeks)
         else:
-            target = current_date + timedelta(weeks=4)  # 默认4周
-            
-        # 获取期权到期日
-        response = market.get_option_expire_date(symbol, resp_format='json')
-        
-        if 'OptionExpireDateResponse' not in response:
-            print(f"错误：股票 '{symbol}' 没有可用的期权数据。")
+            print(f"错误：必须指定target_date或weeks参数。")
             sys.exit(1)
             
-        expiry_dates = []
-        for date_info in response['OptionExpireDateResponse'].get('ExpirationDate', []):
-            expiry_date = datetime(
-                year=date_info['year'],
-                month=date_info['month'],
-                day=date_info['day']
-            ).date()
-            expiry_dates.append(expiry_date)
-            
-        if not expiry_dates:
-            print(f"错误：股票 '{symbol}' 没有可用的期权。")
+        # 获取可用的期权到期日
+        dates = market.get_option_expire_date(symbol, resp_format='json')
+        if 'OptionExpireDateResponse' not in dates:
+            print(f"错误：无法获取{symbol}的期权到期日。")
             sys.exit(1)
             
         # 找到最接近目标日期的到期日
-        closest_date = min(expiry_dates, key=lambda x: abs((x - target).days))
-        return closest_date
+        closest_date = None
+        min_diff = float('inf')
+        
+        for date in dates['OptionExpireDateResponse'].get('ExpirationDate', []):
+            expiry = datetime(year=date['year'], month=date['month'], day=date['day']).date()
+            if expiry >= target:
+                diff = (expiry - target).days
+                if diff < min_diff:
+                    min_diff = diff
+                    closest_date = expiry
+                    
+        if not closest_date:
+            print(f"错误：找不到{symbol}在{target}之后的期权到期日。")
+            sys.exit(1)
+            
+        return closest_date.strftime('%Y-%m-%d')
         
     except Exception as e:
         print(f"错误：获取目标到期日时发生错误：{str(e)}")
         sys.exit(1)
 
-def get_option_range(symbol, target_date):
-    """获取期权范围"""
+def get_option_range(symbol, expiry_date):
+    """获取期权价格范围"""
     try:
         market = get_market_instance()
         if not market:
             print(f"错误：无法获取E*TRADE市场实例。")
             sys.exit(1)
             
-        # 获取目标到期日
-        expiry_date = get_target_expiry(symbol, target_date)
-        
         # 获取当前价格
         current_price = get_stock_price(market, symbol)
-        if current_price is None:
-            print(f"错误：无法获取 {symbol} 的当前价格。")
+        if not current_price:
+            print(f"错误：无法获取{symbol}的当前价格。")
             sys.exit(1)
+            
+        # 如果expiry_date是字符串，转换为datetime
+        if isinstance(expiry_date, str):
+            expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d')
             
         # 获取期权链
         response = market.get_option_chains(
@@ -103,7 +108,7 @@ def get_option_range(symbol, target_date):
         )
         
         if 'OptionChainResponse' not in response:
-            print(f"错误：无法获取 {symbol} 的期权链。")
+            print(f"错误：无法获取{symbol}的期权链。")
             sys.exit(1)
             
         # 计算期权范围
@@ -137,7 +142,7 @@ def get_option_range(symbol, target_date):
                     })
         
         if not atm_pairs:
-            print(f"错误：无法获取 {symbol} 的平值期权数据。")
+            print(f"错误：无法获取{symbol}的平值期权数据。")
             sys.exit(1)
             
         # 计算平均跨式期权组合价格
