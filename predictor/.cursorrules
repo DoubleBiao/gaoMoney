@@ -1,35 +1,40 @@
 {
-    "etrade_api": {
-        "language_rules": {
-            "chat_and_documentation": {
-                "language": "Chinese",
-                "files": [
-                    "README.md",
-                    "templates/*.html",
-                    "chat_messages",
-                    "user_communications"
-                ],
-                "purpose": "Better communication with Chinese users"
-            },
-            "code": {
-                "language": "English",
-                "files": [
-                    "*.py",
-                    "*.js",
-                    "*.css"
-                ],
-                "elements": [
-                    "variable_names",
-                    "function_names",
-                    "class_names",
-                    "comments",
-                    "print_statements",
-                    "error_messages",
-                    "log_messages"
-                ],
-                "purpose": "Maintain code consistency and readability"
-            }
+    "management": {
+        "remote_repository": "git@github.com:DoubleBiao/cursorrule.git",
+        "purpose": "Centralized management of cursor rules",
+        "sync_instructions": "All rule changes should be pushed to this repository"
+    },
+    "language_rules": {
+        "chat_and_documentation": {
+            "language": "Chinese",
+            "files": [
+                "README.md",
+                "templates/*.html",
+                "chat_messages",
+                "user_communications"
+            ],
+            "purpose": "Better communication with Chinese users"
         },
+        "code": {
+            "language": "English",
+            "files": [
+                "*.py",
+                "*.js",
+                "*.css"
+            ],
+            "elements": [
+                "variable_names",
+                "function_names",
+                "class_names",
+                "comments",
+                "print_statements",
+                "error_messages",
+                "log_messages"
+            ],
+            "purpose": "Maintain code consistency and readability"
+        }
+    },
+    "etrade_api": {
         "dependencies": {
             "packages": {
                 "pyetrade": {
