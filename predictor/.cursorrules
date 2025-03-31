@@ -1,0 +1,190 @@
+{
+    "etrade_api": {
+        "language_rules": {
+            "chat_and_documentation": {
+                "language": "Chinese",
+                "files": [
+                    "README.md",
+                    "templates/*.html",
+                    "chat_messages",
+                    "user_communications"
+                ],
+                "purpose": "Better communication with Chinese users"
+            },
+            "code": {
+                "language": "English",
+                "files": [
+                    "*.py",
+                    "*.js",
+                    "*.css"
+                ],
+                "elements": [
+                    "variable_names",
+                    "function_names",
+                    "class_names",
+                    "comments",
+                    "print_statements",
+                    "error_messages",
+                    "log_messages"
+                ],
+                "purpose": "Maintain code consistency and readability"
+            }
+        },
+        "dependencies": {
+            "packages": {
+                "pyetrade": {
+                    "version": "latest",
+                    "purpose": "E*TRADE API Python wrapper",
+                    "import": "import pyetrade"
+                },
+                "flask": {
+                    "version": "latest",
+                    "purpose": "Web application framework",
+                    "import": "from flask import Flask, render_template, request, jsonify"
+                },
+                "pandas": {
+                    "version": "latest",
+                    "purpose": "Data manipulation and analysis",
+                    "import": "import pandas as pd"
+                },
+                "numpy": {
+                    "version": "latest",
+                    "purpose": "Numerical computations",
+                    "import": "import numpy as np"
+                }
+            },
+            "api_endpoints": {
+                "etrade": {
+                    "base_url": "https://api.etrade.com",
+                    "endpoints": {
+                        "oauth": {
+                            "request_token": "/oauth/request_token",
+                            "access_token": "/oauth/access_token",
+                            "renew_token": "/oauth/renew_access_token"
+                        },
+                        "market": {
+                            "quotes": "/v1/market/quote",
+                            "option_chains": "/v1/market/option/chains",
+                            "option_expire": "/v1/market/option/expire"
+                        }
+                    }
+                }
+            }
+        },
+        "config": {
+            "required_files": {
+                "config.json": {
+                    "location": "project_root",
+                    "required_fields": {
+                        "etrade": {
+                            "consumer_key": "be94408695017780b79666ab5bf2a1d2",
+                            "consumer_secret": "6c31ff728b81ad5869a5ae79a6a613b34b185a28786ccf76654093cbb6908251",
+                            "sandbox": false
+                        }
+                    }
+                },
+                "etrade_tokens.json": {
+                    "location": "project_root",
+                    "purpose": "store_oauth_tokens",
+                    "managed_by": "etrade_options.py"
+                }
+            },
+            "api_keys": {
+                "source": "E*TRADE API Developer Portal",
+                "setup_steps": [
+                    "Create E*TRADE account if not exists",
+                    "Visit https://developer.etrade.com",
+                    "Create new application",
+                    "Select 'Production' environment",
+                    "Fill required application details",
+                    "Get consumer key and secret"
+                ],
+                "security": [
+                    "Never share API keys",
+                    "Store keys in config.json only",
+                    "Add config.json to .gitignore"
+                ]
+            }
+        },
+        "connection": {
+            "first_time": {
+                "steps": [
+                    "run test_etrade.py",
+                    "browser opens with E*TRADE authorization URL",
+                    "log in to E*TRADE account",
+                    "enter verification code when prompted",
+                    "tokens saved to etrade_tokens.json"
+                ]
+            },
+            "token_refresh": {
+                "trigger": [
+                    "delete etrade_tokens.json",
+                    "token expiration"
+                ],
+                "steps": [
+                    "run test_etrade.py",
+                    "follow first-time authorization process"
+                ]
+            }
+        },
+        "testing": {
+            "script": "test_etrade.py",
+            "required_functions": {
+                "save_tokens": {
+                    "purpose": "Save OAuth tokens to file",
+                    "parameters": "tokens (dict)",
+                    "file": "etrade_tokens.json"
+                },
+                "test_etrade_connection": {
+                    "purpose": "Test API connection and functionality",
+                    "steps": [
+                        "Get market instance",
+                        "Test stock price query",
+                        "Test beta calculation"
+                    ],
+                    "return": "boolean (success/failure)"
+                }
+            },
+            "test_script_template": {
+                "imports": [
+                    "sys",
+                    "os",
+                    "json",
+                    "etrade_options"
+                ],
+                "required_functions": [
+                    "save_tokens(tokens)",
+                    "test_etrade_connection()"
+                ],
+                "main_block": {
+                    "directory_check": "Ensure correct working directory",
+                    "token_handling": "Handle command line token updates",
+                    "connection_test": "Run connection test"
+                }
+            },
+            "checks": [
+                "market instance creation",
+                "AAPL price query",
+                "beta calculation test"
+            ],
+            "output": "success/failure status"
+        },
+        "error_handling": {
+            "invalid_tokens": "delete etrade_tokens.json",
+            "connection_failures": "print detailed error messages",
+            "token_expiration": "automatic reauthorization prompt"
+        },
+        "security": {
+            "do_not_commit": [
+                "config.json",
+                "etrade_tokens.json"
+            ],
+            "best_practices": [
+                "keep API credentials private",
+                "always use production environment (sandbox=false)",
+                "regularly rotate API keys",
+                "monitor API usage and rate limits"
+            ]
+        }
+    }
+} 
