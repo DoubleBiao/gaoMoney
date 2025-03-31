@@ -7,8 +7,6 @@ import os
 import sys
 from flask import Flask
 
-# 使用相对路径导入
-sys.path.append('..')
 import etrade_options
 import option_range
 from etrade_options import get_market_instance, get_stock_price, get_stock_beta, get_atm_option_price
@@ -18,14 +16,13 @@ class PortfolioPredictor:
     def __init__(self, portfolio_data, target_date):
         self.portfolio_data = portfolio_data
         self.target_date = target_date
-        # 确保在正确的目录中
-        os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         self.market = get_market_instance()
         if not self.market:
             raise Exception("无法连接到E*TRADE API")
         
     def _load_config(self):
-        with open('config.json', 'r') as f:
+        config_path = os.path.join(grandparent_dir, 'config.json')
+        with open(config_path, 'r') as f:
             return json.load(f)
     
     def predict(self):

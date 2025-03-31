@@ -35,7 +35,18 @@ pip install -r requirements.txt
 }
 ```
 
-4. Prepare portfolio data:
+4. Set up E*TRADE API Authentication:
+- Run the test script to authenticate and save tokens:
+```bash
+python test_etrade.py
+```
+- Follow the prompts to:
+  1. Open the authorization URL in your browser
+  2. Log in to your E*TRADE account
+  3. Enter the verification code
+- The script will save the tokens to `etrade_tokens.json`
+
+5. Prepare portfolio data:
 - Create a `portfolio.csv` file in the project root
 - Required columns: symbol, shares, benchmark, adjustment, options
 - Example format:
@@ -87,14 +98,20 @@ predictor/
 │   └── portfolio_predictor.py
 ├── templates/               # HTML templates
 │   └── index.html
+├── etrade_options.py        # E*TRADE API interaction
+├── option_range.py          # Option range calculations
+├── test_etrade.py          # E*TRADE API testing and token management
+├── config.json             # API configuration
+├── etrade_tokens.json      # API access tokens
 └── README.md               # Project documentation
 ```
 
 ## Security Notes
 
 - Never commit API credentials or sensitive data
-- Keep your `config.json` and portfolio data files private
+- Keep your `config.json`, `etrade_tokens.json`, and portfolio data files private
 - Use environment variables for production deployments
+- Regularly update your E*TRADE API tokens using `test_etrade.py`
 
 ## Troubleshooting
 
@@ -102,6 +119,7 @@ predictor/
    - Verify API credentials in config.json
    - Ensure network connectivity
    - Check E*TRADE API service status
+   - If tokens expire, run `test_etrade.py` to refresh them
 
 2. Data Display Problems:
    - Confirm CSV file format is correct
