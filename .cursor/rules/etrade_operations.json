@@ -1,0 +1,49 @@
+{
+    "name": "E*TRADE Common Operations",
+    "description": "Common operations and best practices for E*TRADE API usage",
+    "patterns": ["**/*.py"],
+    "rules": {
+        "common_operations": {
+            "quotes": {
+                "description": "Get stock quotes",
+                "code": "quotes = api.get_quote(['AAPL', 'GOOGL'])"
+            },
+            "option_chains": {
+                "description": "Get option chain data",
+                "code": [
+                    "option_chain = api.get_option_chains(",
+                    "    symbol='AAPL',",
+                    "    strike_price_near=current_price,",
+                    "    expiry_date='2024-04-19'",
+                    ")"
+                ]
+            },
+            "account_balance": {
+                "description": "Get account balance",
+                "code": "balance = api.get_account_balance()"
+            }
+        },
+        "error_handling": {
+            "authentication": [
+                "try:",
+                "    api.authenticate()",
+                "except Exception as e:",
+                "    print(f'Authentication failed: {e}')",
+                "    # Handle authentication error"
+            ],
+            "api_calls": [
+                "try:",
+                "    result = api.get_quote(['AAPL'])",
+                "except Exception as e:",
+                "    print(f'API call failed: {e}')",
+                "    # Handle API error"
+            ]
+        },
+        "best_practices": {
+            "rate_limiting": "Implement appropriate delays between API calls to avoid rate limits",
+            "token_refresh": "Check token expiration and refresh when needed",
+            "error_recovery": "Implement retry logic for transient failures",
+            "data_validation": "Validate API responses before processing"
+        }
+    }
+} 

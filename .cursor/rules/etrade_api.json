@@ -1,0 +1,68 @@
+{
+    "name": "E*TRADE API Configuration",
+    "description": "Rules for E*TRADE API integration and usage",
+    "patterns": ["**/*.py"],
+    "rules": {
+        "api_configuration": {
+            "template": {
+                "etrade": {
+                    "consumer_key": "YOUR_CONSUMER_KEY",
+                    "consumer_secret": "YOUR_CONSUMER_SECRET",
+                    "sandbox": false
+                }
+            },
+            "required_files": [
+                {
+                    "path": "config.json",
+                    "description": "API credentials configuration",
+                    "is_sensitive": true
+                },
+                {
+                    "path": "verification_code.txt",
+                    "description": "Temporary verification code",
+                    "is_sensitive": true,
+                    "is_temporary": true
+                }
+            ]
+        },
+        "security": {
+            "sensitive_patterns": [
+                "config.json",
+                "verification_code.txt",
+                "*.key",
+                "etrade_tokens.json"
+            ],
+            "gitignore_rules": [
+                "config.json",
+                "verification_code.txt",
+                "*.key",
+                "etrade_tokens.json"
+            ]
+        },
+        "code_style": {
+            "imports": [
+                "from pyetrade import ETradeAPI",
+                "import json"
+            ],
+            "authentication_flow": [
+                "# Load config",
+                "with open('config.json', 'r') as f:",
+                "    config = json.load(f)",
+                "",
+                "# Initialize API",
+                "api = ETradeAPI(",
+                "    consumer_key=config['etrade']['consumer_key'],",
+                "    consumer_secret=config['etrade']['consumer_secret'],",
+                "    sandbox=config['etrade']['sandbox']",
+                ")",
+                "",
+                "# First time authentication",
+                "if not api.is_authenticated():",
+                "    api.authenticate()",
+                "    with open('verification_code.txt', 'r') as f:",
+                "        verification_code = f.read().strip()",
+                "    api.verify_code(verification_code)"
+            ]
+        }
+    }
+} 
